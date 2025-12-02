@@ -122,6 +122,18 @@ public static class Helper
 
     return (array[0].ToInt(), array[1].ToInt());
   }
+  
+  public static (long first, long second) ToLongTuplePair(this string[] array)
+  {
+    if (array.Length > 2)
+      throw new ArgumentException(
+          $" Too many array members.{array.Length} This method requires an array of length 2.");
+    if (array.Length < 2)
+      throw new ArgumentException(
+          $" Too few array members.{array.Length} This method requires an array of length 2.");
+
+    return (array[0].ToLong(), array[1].ToLong());
+  }
 
   public static (int first, int second, int third) ToIntTupleTriple(this string[] array)
   {
