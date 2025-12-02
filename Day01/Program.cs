@@ -3,12 +3,7 @@ using System.Diagnostics;
 namespace Day01;
 
 internal static partial class Program {
-  private const string Title = "\n## Day 1: Secret Entrance ##";
-  private const string AdventOfCode = "https://adventofcode.com/2025/day/1";
-  private const long ExpectedPartOne = 0;
-  private const long ExpectedPartTwo = 0;
-
-  public static int Main(string[] args) {
+ public static int Main(string[] args) {
     Console.WriteLine(Title);
     Console.WriteLine(AdventOfCode);
 
