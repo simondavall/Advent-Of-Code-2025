@@ -1,7 +1,4 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-
-namespace Day01;
+﻿namespace Day01;
 
 internal static partial class Program {
   private const string Title = "\n## Day 1: Secret Entrance ##";
