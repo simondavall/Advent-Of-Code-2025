@@ -1,0 +1,7 @@
+*.o
+aoc
+playground
+bin
+obj
+.idea
+*.user
