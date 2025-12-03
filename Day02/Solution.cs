@@ -1,4 +1,5 @@
-﻿using AocHelper;
+﻿using System.Collections.Concurrent;
+using AocHelper;
 
 namespace Day02;
 
@@ -15,11 +16,11 @@ internal static partial class Program {
       (long low, long high) = str.Split('-').ToLongTuplePair();
       (bool isValid, long max, long divisor) = (false, -1, -1);
       for (long current = low; current <= high; current++) {
-        if (current > max) {
+        if (current > max) { // will be the same result up to max value, then re calculate
           (isValid, max, divisor) = IsValid(current);
         }
-        if (isValid) {
-          if (current % divisor == current / divisor) {
+        if (isValid) { // has even number of digits
+          if (current % divisor == current / divisor) { // divisor calculated to split number in two with mod and div
             tally += current;
           }
         }
@@ -30,34 +31,37 @@ internal static partial class Program {
   }
 
   private static long PartTwo(string[] ranges) {
-    long tally = 0;
-
+    ConcurrentBag<long> inValidIds = [];
+    
     foreach (var str in ranges) {
       (long low, long high) = str.Split('-').ToLongTuplePair();
-      for (long current = low; current <= high; current++) {
-        var curStr = current.ToString();
+      var numbers = Helper.Range(low, high - low + 1);
+
+      Parallel.ForEach(numbers, number => {
+        var curStr = number.ToString();
+
         var n = 1;
         while (n <= curStr.Length / 2) {
-          if (HasRepeatedStrings(curStr, n)){
-            tally += current;
+          if (HasRepeatedNumbers(curStr, n)) {
+            inValidIds.Add(number);
             break;
           }
           n++;
         }
-      }
+      });
     }
 
-    return tally;
+    return inValidIds.Sum();
   }
 
-  private static bool HasRepeatedStrings(ReadOnlySpan<char> curStr, int chunkSize){
+  private static bool HasRepeatedNumbers(ReadOnlySpan<char> curStr, int chunkSize) {
     if (curStr.Length % chunkSize != 0)
       return false;
 
     var match = true;
-    for (var i = 0; i < chunkSize; i++){
-      for (var j = i + chunkSize; j < curStr.Length; j += chunkSize){
-        if (curStr[i] != curStr[j]){
+    for (var i = 0; i < chunkSize; i++) {
+      for (var j = i + chunkSize; j < curStr.Length; j += chunkSize) {
+        if (curStr[i] != curStr[j]) {
           match = false;
           break;
         }

@@ -19,6 +19,13 @@ public static class Helper
     return Enumerable.Range(start, n);
   }
 
+  public static long[] Range(long start, long n){
+    var range = new long[n];
+    for (long i = 0; i < n; i++)
+      range[i] = i + start;
+    return range;
+  }
+
   public static int ToInt(this string str)
   {
     if (int.TryParse(str, out var value))
