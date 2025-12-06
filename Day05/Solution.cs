@@ -6,8 +6,8 @@ namespace Day05;
 internal static partial class Program {
   private const string Title = "\n## Day 5: Cafeteria ##";
   private const string AdventOfCode = "https://adventofcode.com/2025/day/5";
-  private const long ExpectedPartOne = 0;
-  private const long ExpectedPartTwo = 0;
+  private const long ExpectedPartOne = 623;
+  private const long ExpectedPartTwo = 353507173555373;
 
   private static long PartOne(string data) {
     var (ranges, ingredients) = ProcessData(data);
