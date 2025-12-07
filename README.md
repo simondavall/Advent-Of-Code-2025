@@ -8,7 +8,7 @@ Solutions for Advent Of Code 2025 written using C#
 ```bash
 make
 ```
-This should build all days' projects in Rerlease mode, and execute them.
+This should build all days' projects in Release mode, and execute them.
 The results will be displayed in the terminal window, with execution timings for each.
 
 ### To run an individual day: ###
@@ -18,3 +18,5 @@ The results will be displayed in the terminal window, with execution timings for
 ```bash
 make
 ```
+Note: Individual day executions have been set up to build and run in Debug mode.
+To change this edit the makefile and change the two mentions of Debug to Release.
