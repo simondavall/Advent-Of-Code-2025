@@ -6,17 +6,21 @@ internal static partial class Program
 {
   public static int Main(string[] args)
   {
-    if (args.Length != 2)
-      throw new ArgumentException($"Expected 2 args found {args.Length}");
     Console.WriteLine(Title);
     Console.WriteLine(AdventOfCode);
 
     long resultPartOne = -1;
     long resultPartTwo = -1;
 
-    for (var i = 0; i < args.Length; i += 2) {
-      var filePath = args[i];
-      var count = int.Parse(args[i + 1]);
+    foreach (var argument in args) {
+      var count = 1000;
+      var filePath = argument;
+
+      var arg = argument.Split(':', StringSplitOptions.RemoveEmptyEntries);
+      if (arg.Length > 1){
+        filePath = arg[0];
+        count = int.Parse(arg[1]);
+      }
 
       Console.WriteLine($"\nFile: {filePath}, Count:{count}\n");
       string input = GetData(filePath);
