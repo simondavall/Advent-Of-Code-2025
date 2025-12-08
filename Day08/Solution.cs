@@ -49,16 +49,13 @@ internal static partial class Program
 
     var (first, second, third) = (0, 0, 0);
     foreach (var circuit in circuits) {
-      var count = circuit.Count;
-      if (count > first) {
-        third = second;
-        second = first;
-        first = count;
-      } else if (count > second) {
-        third = second;
-        second = count;
-      } else if (count > third) {
-        third = count;
+      var current = circuit.Count;
+      if (current > first) {
+        (first, second, third) = (current, first, second);
+      } else if (current > second) {
+        (second, third) = (current, second);
+      } else if (current > third) {
+        third = current;
       }
     }
 
