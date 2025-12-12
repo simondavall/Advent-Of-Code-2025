@@ -1,4 +1,5 @@
 ﻿using AocHelper;
+using Microsoft.Z3;
 
 namespace Day10;
 
@@ -7,7 +8,7 @@ internal static partial class Program
   private const string Title = "\n## Day 10: Factory ##";
   private const string AdventOfCode = "https://adventofcode.com/2025/day/10";
   private const long ExpectedPartOne = 457;
-  private const long ExpectedPartTwo = 0;
+  private const long ExpectedPartTwo = 17576;
 
   private static long PartOne(string data)
   {
@@ -55,65 +56,83 @@ internal static partial class Program
     var schematics = ProcessData(data);
     long tally = 0;
 
-    HashSet<long> seen;
+    for (var i = 0; i < schematics.Length; i++) {
+      var buttons = schematics[i].buttons;
+      var joltage = schematics[i].joltage;
 
-    foreach (var (_, buttonSchematics, required) in schematics) {
-      Console.WriteLine($"Trying for required: {required.Values.Print()}");
-      seen = [];
-      var startingJoltage = Joltage.CreateInitial(required.Length);
+      var buttonCount = buttons.Length;
+      var counterCount = joltage.Length;
 
-      var q = new PriorityQueue<(Joltage, long), int>(Comparer<int>.Create((a, b) => b.CompareTo(a)));
-      q.Enqueue((startingJoltage, 0), 0);
-      seen.Add(startingJoltage.CacheKey);
+      using var ctx = new Context();
+      Optimize o = ctx.MkOptimize();
 
-      var foundMatch = false;
-      while (q.Count > 0) {
-        if (!q.TryDequeue(out var item, out int priority))
-          continue;
-        var (current, depth) = item;
-        foreach (var buttons in buttonSchematics) {
-          var newJoltage = current.Clone();
-          foreach (var button in buttons) {
-            newJoltage.Increment(button);
-          }
-          if (seen.Contains(newJoltage.CacheKey)){
-            //Console.WriteLine($"Cache hit: {newJoltage.CacheKey}, current:{newJoltage.Values.Print()}");
-            continue;
-          }
-          seen.Add(newJoltage.CacheKey);
-          if (newJoltage.CacheKey == required.CacheKey) {
-            foundMatch = true;
-            break;
-          }
-          if (!JoltageExceeded(newJoltage.Values, required.Values, out int proximity))
-            q.Enqueue((newJoltage, depth + 1), proximity);
-        }
-        if (foundMatch) {
-          tally += depth + 1;
-          break;
-        }
+      IntExpr[] expr = new IntExpr[buttonCount];
+
+      for (int j = 0; j < buttonCount; j++) {
+        expr[j] = ctx.MkIntConst($"expr_{i}_{j}");
+        o.Add(ctx.MkGe(expr[j], ctx.MkInt(0)));
       }
-    }
 
+      for (int j = 0; j < counterCount; j++) {
+        var terms = new List<ArithExpr>();
+
+        for (int k = 0; k < buttonCount; k++) {
+          int[] button = buttons[k];
+
+          bool hasMatch = false;
+          for (int l = 0; l < button.Length; l++) {
+            if (button[l] == j) {
+              hasMatch = true;
+              break;
+            }
+          }
+
+          if (hasMatch)
+            terms.Add(expr[k]);
+        }
+
+        ArithExpr lhsExpr;
+        if (terms.Count == 0) {
+          lhsExpr = ctx.MkInt(0);
+        } else if (terms.Count == 1) {
+          lhsExpr = terms[0];
+        } else {
+          lhsExpr = ctx.MkAdd(terms.ToArray());
+        }
+
+        o.Add(ctx.MkEq(lhsExpr, ctx.MkInt(joltage[j])));
+      }
+
+      ArithExpr totalExpr;
+      if (buttonCount == 1)
+        totalExpr = expr[0];
+      else
+        totalExpr = ctx.MkAdd(expr);
+
+      o.MkMinimize(totalExpr);
+
+      if (o.Check() != Status.SATISFIABLE) {
+        return -1;
+      }
+
+      Model model = o.Model;
+
+      int best = 0;
+      for (int j = 0; j < buttonCount; j++) {
+        IntNum val = (IntNum)model.Evaluate(expr[j], true);
+        best += val.Int;
+      }
+
+      tally += best;
+    }
     return tally;
   }
 
-  private static bool JoltageExceeded(int[] current, int[] required, out int proximity)
-  {
-    proximity = 0;
-    for (var i = 0; i < required.Length; i++) {
-      proximity += current[i];
-      if (current[i] > required[i])
-        return true;
-    }
-    return false;
-  }
-
-  private static (IndicatorLights indicatorLights, int[][] buttons, Joltage joltage)[] ProcessData(string data)
+  private static (IndicatorLights indicatorLights, int[][] buttons, int[] joltage)[] ProcessData(string data)
   {
     var lines = data.Split('\n', StringSplitOptions.RemoveEmptyEntries);
 
-    var output = new List<(IndicatorLights, int[][], Joltage)>();
+    var output = new List<(IndicatorLights, int[][], int[])>();
     foreach (var line in lines) {
       var schematic = line.Split(' ');
 
@@ -121,8 +140,8 @@ internal static partial class Program
       var indicatorLights = new IndicatorLights(strIndicator[1..^1].ToCharArray());
 
       var strJoltage = schematic[^1];
-      var jolts = strJoltage[1..^1].Split(',').ToIntArray();
-      var joltage = new Joltage(jolts); 
+      var joltage = strJoltage[1..^1].Split(',').ToIntArray();
+      //var joltage = new Joltage(jolts);
 
       var buttonSchematics = schematic[1..^1];
       var buttonsList = new List<int[]>();
@@ -135,52 +154,53 @@ internal static partial class Program
     return output.ToArray();
   }
 
-  private class Joltage
-  {
-    private int[] _joltage = [];
-    private long _cacheKey;
-
-    private Joltage() { }
-    public Joltage(int[] joltage)
-    {
-      _joltage = joltage;
-      _cacheKey = CreateCacheKey();
-    }
-
-    public void Increment(int idx){
-      _joltage[idx] += 1; 
-      _cacheKey += (long)Math.Pow(100, _joltage.Length - idx - 1);
-    }
-
-    public int[] Values => _joltage;
-    public long CacheKey => _cacheKey;
-
-    public Joltage Clone()
-    {
-      return new Joltage() {
-        _joltage = _joltage.ToArray(),
-        _cacheKey = _cacheKey
-      };
-    }
-
-    public int Length => _joltage.Length;
-
-    public static Joltage CreateInitial(int length)
-    {
-      var jolts = Helper.CreateArray(length, 0);
-      return new Joltage(jolts);
-    }
-
-    private long CreateCacheKey()
-    {
-      long key = 0;
-      for (var i = 0; i < _joltage.Length; i++) {
-        key *= 100;
-        key += _joltage[i];
-      }
-      return key;
-    }
-  }
+  // private class Joltage
+  // {
+  //   private int[] _joltage = [];
+  //   private long _cacheKey;
+  //
+  //   private Joltage() { }
+  //   public Joltage(int[] joltage)
+  //   {
+  //     _joltage = joltage;
+  //     _cacheKey = CreateCacheKey();
+  //   }
+  //
+  //   public void Increment(int idx)
+  //   {
+  //     _joltage[idx] += 1;
+  //     _cacheKey += (long)Math.Pow(100, _joltage.Length - idx - 1);
+  //   }
+  //
+  //   public int[] Values => _joltage;
+  //   public long CacheKey => _cacheKey;
+  //
+  //   public Joltage Clone()
+  //   {
+  //     return new Joltage() {
+  //       _joltage = _joltage.ToArray(),
+  //       _cacheKey = _cacheKey
+  //     };
+  //   }
+  //
+  //   public int Length => _joltage.Length;
+  //
+  //   public static Joltage CreateInitial(int length)
+  //   {
+  //     var jolts = Helper.CreateArray(length, 0);
+  //     return new Joltage(jolts);
+  //   }
+  //
+  //   private long CreateCacheKey()
+  //   {
+  //     long key = 0;
+  //     for (var i = 0; i < _joltage.Length; i++) {
+  //       key *= 100;
+  //       key += _joltage[i];
+  //     }
+  //     return key;
+  //   }
+  // }
 
 
   private class IndicatorLights
