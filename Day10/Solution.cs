@@ -141,7 +141,6 @@ internal static partial class Program
 
       var strJoltage = schematic[^1];
       var joltage = strJoltage[1..^1].Split(',').ToIntArray();
-      //var joltage = new Joltage(jolts);
 
       var buttonSchematics = schematic[1..^1];
       var buttonsList = new List<int[]>();
@@ -153,55 +152,6 @@ internal static partial class Program
     }
     return output.ToArray();
   }
-
-  // private class Joltage
-  // {
-  //   private int[] _joltage = [];
-  //   private long _cacheKey;
-  //
-  //   private Joltage() { }
-  //   public Joltage(int[] joltage)
-  //   {
-  //     _joltage = joltage;
-  //     _cacheKey = CreateCacheKey();
-  //   }
-  //
-  //   public void Increment(int idx)
-  //   {
-  //     _joltage[idx] += 1;
-  //     _cacheKey += (long)Math.Pow(100, _joltage.Length - idx - 1);
-  //   }
-  //
-  //   public int[] Values => _joltage;
-  //   public long CacheKey => _cacheKey;
-  //
-  //   public Joltage Clone()
-  //   {
-  //     return new Joltage() {
-  //       _joltage = _joltage.ToArray(),
-  //       _cacheKey = _cacheKey
-  //     };
-  //   }
-  //
-  //   public int Length => _joltage.Length;
-  //
-  //   public static Joltage CreateInitial(int length)
-  //   {
-  //     var jolts = Helper.CreateArray(length, 0);
-  //     return new Joltage(jolts);
-  //   }
-  //
-  //   private long CreateCacheKey()
-  //   {
-  //     long key = 0;
-  //     for (var i = 0; i < _joltage.Length; i++) {
-  //       key *= 100;
-  //       key += _joltage[i];
-  //     }
-  //     return key;
-  //   }
-  // }
-
 
   private class IndicatorLights
   {
