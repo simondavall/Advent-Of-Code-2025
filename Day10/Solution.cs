@@ -1,4 +1,5 @@
-﻿using AocHelper;
+﻿using System.ComponentModel.DataAnnotations;
+using AocHelper;
 using Microsoft.Z3;
 
 namespace Day10;
@@ -56,74 +57,131 @@ internal static partial class Program
     var schematics = ProcessData(data);
     long tally = 0;
 
-    for (var i = 0; i < schematics.Length; i++) {
-      var buttons = schematics[i].buttons;
-      var joltage = schematics[i].joltage;
+    for (var s = 0; s < schematics.Length; s++) {
+      int[][] buttons = schematics[s].buttons;
+      int[] joltage = schematics[s].joltage;
 
-      var buttonCount = buttons.Length;
-      var counterCount = joltage.Length;
+      int buttonCount = buttons.Length;
+      int joltageCount = joltage.Length;
 
-      using var ctx = new Context();
-      Optimize o = ctx.MkOptimize();
-
-      IntExpr[] expr = new IntExpr[buttonCount];
-
-      for (int j = 0; j < buttonCount; j++) {
-        expr[j] = ctx.MkIntConst($"expr_{i}_{j}");
-        o.Add(ctx.MkGe(expr[j], ctx.MkInt(0)));
+      int[][] matrix = new int[joltageCount][];
+      for (int l = 0; l < joltageCount; l++) {
+        matrix[l] = new int[buttonCount + 1];
+        matrix[l][^1] = joltage[l];
+        for (int j = 0; j < buttons.Length; j++)
+          matrix[l][j] = buttons[j].Contains(l) ? 1 : 0;
       }
 
-      for (int j = 0; j < counterCount; j++) {
-        var terms = new List<ArithExpr>();
+      Helper.VarDump(matrix);
 
-        for (int k = 0; k < buttonCount; k++) {
-          int[] button = buttons[k];
+      var h = 0;
+      var k = 0;
+      var m = matrix.Length;
+      var n = matrix[0].Length;
 
-          bool hasMatch = false;
-          for (int l = 0; l < button.Length; l++) {
-            if (button[l] == j) {
-              hasMatch = true;
-              break;
-            }
-          }
-
-          if (hasMatch)
-            terms.Add(expr[k]);
+      while (h < m && k < n) {
+        var i_max = 0;
+        // Helper.VarDump(matrix);
+        for (var row = h; row < m; row++) {
+          i_max = Math.Abs(matrix[row][k]) > Math.Abs(matrix[i_max][k]) ? row : i_max;
         }
-
-        ArithExpr lhsExpr;
-        if (terms.Count == 0) {
-          lhsExpr = ctx.MkInt(0);
-        } else if (terms.Count == 1) {
-          lhsExpr = terms[0];
+        Console.WriteLine($"h(row):{h}, k(col):{k}, imax: {i_max}");
+        if (i_max == 0) {
+          Console.WriteLine($"Imax zero so skipping to next column");
+          k++;
         } else {
-          lhsExpr = ctx.MkAdd(terms.ToArray());
+          // Console.WriteLine($"Swapping rows {h} and {i_max}");
+          (matrix[h], matrix[i_max]) = (matrix[i_max], matrix[h]);
+          // Helper.VarDump(matrix);
+          for (var i = 0; i < m; i++) {
+            if (i == h)
+              continue;
+            Console.WriteLine($"Working on row(i):{i}");
+            // todo: check if this loses precision (i.e. not an exact integer division)
+            // and divide by zero
+            var nom = matrix[i][k];
+            var denom = matrix[h][k];
+            Console.WriteLine($"Calc nom/denom, matrix[i][k]:{nom} / matrix[h][k]:{denom}");
+            if (nom % denom != 0){
+              Console.WriteLine($"Fraction");
+            }
+            var f = nom / denom;
+            // Console.WriteLine($"Setting matrix[i][k]:{matrix[i][k]} to 0, i:{i}, k:{k}");
+            matrix[i][k] = 0;
+            for (var j = k + 1; j < n; j++) {
+              // Console.WriteLine($"For remaining columns matrix[i][j]:{matrix[i][j]} - matrix[h][j]:{matrix[h][j]} * f:{f}");
+              matrix[i][j] = matrix[i][j] - matrix[h][j] * f;
+            }
+            // Console.WriteLine($"h:{h}");
+            // Helper.VarDump(matrix);
+          }
+          h++;
+          k++;
         }
-
-        o.Add(ctx.MkEq(lhsExpr, ctx.MkInt(joltage[j])));
       }
 
-      ArithExpr totalExpr;
-      if (buttonCount == 1)
-        totalExpr = expr[0];
-      else
-        totalExpr = ctx.MkAdd(expr);
-
-      o.MkMinimize(totalExpr);
-
-      if (o.Check() != Status.SATISFIABLE) {
-        return -1;
-      }
-
-      Model model = o.Model;
-
-      int best = 0;
-      for (int j = 0; j < buttonCount; j++) {
-        IntNum val = (IntNum)model.Evaluate(expr[j], true);
-        best += val.Int;
-      }
-
-      tally += best;
+      Helper.VarDump(matrix);
+      // using var ctx = new Context();
+      // Optimize o = ctx.MkOptimize();
+      //
+      // IntExpr[] expr = new IntExpr[buttonCount];
+      //
+      // for (int j = 0; j < buttonCount; j++) {
+      //   expr[j] = ctx.MkIntConst($"expr_{s}_{j}");
+      //   o.Add(ctx.MkGe(expr[j], ctx.MkInt(0)));
+      // }
+      //
+      // for (int j = 0; j < joltageCount; j++) {
+      //   var terms = new List<ArithExpr>();
+      //
+      //   for (int b = 0; b < buttonCount; b++) {
+      //     int[] button = buttons[b];
+      //
+      //     bool hasMatch = false;
+      //     for (int l = 0; l < button.Length; l++) {
+      //       if (button[l] == j) {
+      //         hasMatch = true;
+      //         break;
+      //       }
+      //     }
+      //
+      //     if (hasMatch)
+      //       terms.Add(expr[b]);
+      //   }
+      //
+      //   ArithExpr lhsExpr;
+      //   if (terms.Count == 0) {
+      //     lhsExpr = ctx.MkInt(0);
+      //   } else if (terms.Count == 1) {
+      //     lhsExpr = terms[0];
+      //   } else {
+      //     lhsExpr = ctx.MkAdd(terms.ToArray());
+      //   }
+      //
+      //   o.Add(ctx.MkEq(lhsExpr, ctx.MkInt(joltage[j])));
+      // }
+      //
+      // ArithExpr totalExpr;
+      // if (buttonCount == 1)
+      //   totalExpr = expr[0];
+      // else
+      //   totalExpr = ctx.MkAdd(expr);
+      //
+      // o.MkMinimize(totalExpr);
+      //
+      // if (o.Check() != Status.SATISFIABLE) {
+      //   return -1;
+      // }
+      //
+      // Model model = o.Model;
+      //
+      // int best = 0;
+      // for (int j = 0; j < buttonCount; j++) {
+      //   IntNum val = (IntNum)model.Evaluate(expr[j], true);
+      //   best += val.Int;
+      // }
+      //
+      // tally += best;
     }
     return tally;
   }
