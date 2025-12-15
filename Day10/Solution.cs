@@ -50,8 +50,253 @@ internal static partial class Program
 
     return tally;
   }
-
   private static long PartTwo(string data)
+  {
+    var schematics = ProcessData(data);
+    long tally = 0;
+
+    var min = 0;
+    var max = -1;
+
+    var solved = 0;
+    var matrices = schematics.Length;
+
+    for (var s = 0; s < matrices; s++) {
+      if (s < min || (s > max && max != -1))
+        continue;
+
+      // if (!new float[]{5, 80}.Contains(s)){
+      //   continue;
+      // }
+
+      // Console.WriteLine($"\nMatrix index:{s}");
+      float[][] buttons = schematics[s].buttons.ToFloatArray();
+      float[] joltage = schematics[s].joltage.ToFloatArray();
+      int buttonCount = buttons.Length;
+      int joltageCount = joltage.Length;
+
+      float[][] matrix = new float[joltageCount][];
+      for (int l = 0; l < joltageCount; l++) {
+        matrix[l] = new float[buttonCount + 1];
+        matrix[l][^1] = joltage[l];
+        for (int j = 0; j < buttons.Length; j++)
+          matrix[l][j] = buttons[j].Contains(l) ? 1 : 0;
+      }
+      Console.WriteLine($"Original matrix");
+      Helper.VarDump(matrix);
+
+      matrix = ReducedRowEchelonForm(matrix);
+      // Helper.VarDump(matrix1);
+
+      var m = matrix.Length;
+      var n = matrix[0].Length - 1;
+
+      float tallyForMatrix = 0;
+      if (n > m) {
+        Console.WriteLine($"\nMatrix index:{s}");
+        Helper.VarDump(joltage);
+        Console.WriteLine($"Need resolving");
+        Console.WriteLine($"Free = {n - m}");
+        Helper.VarDump(matrix);
+        // we need to deal with free variables
+      } else {
+        // Console.WriteLine($"\nMatrix index:{s}");
+        // Helper.VarDump(matrix);
+        for (var i = 0; i < matrix.Length; i++) {
+          tallyForMatrix += matrix[i][^1] / matrix[i][i];
+        }
+        solved++;
+      }
+      tally += (long)tallyForMatrix;
+      Console.WriteLine($"Total for matrix:{tallyForMatrix}");
+    }
+
+    Console.WriteLine($"Solved: {solved} / {matrices}");
+    return tally;
+  }
+
+  private static float[][] ReducedRowEchelonForm(float[][] orig_matrix)
+  {
+    var matrix = new float[orig_matrix.Length][];
+    foreach (var (i, row) in orig_matrix.Index())
+      matrix[i] = row.ToArray();
+    int lead = 0, rowCount = matrix.Length, columnCount = matrix[0].Length;
+    for (int r = 0; r < rowCount; r++) {
+      if (columnCount <= lead) break;
+      int i = r;
+      while (matrix[i][lead] == 0) {
+        i++;
+        if (i == rowCount) {
+          i = r;
+          lead++;
+          if (columnCount == lead) {
+            lead--;
+            break;
+          }
+        }
+      }
+      for (int j = 0; j < columnCount; j++) {
+        (matrix[i][j], matrix[r][j]) = (matrix[r][j], matrix[i][j]);
+      }
+      float div = matrix[r][lead];
+      if (div != 0) {
+        for (int j = 0; j < columnCount; j++) {
+          matrix[r][j] /= div;
+        }
+        for (int j = 0; j < rowCount; j++) {
+          if (j != r) {
+            float sub = matrix[j][lead];
+            for (int k = 0; k < columnCount; k++) {
+              matrix[j][k] -= sub * matrix[r][k];
+              if (Math.Abs(matrix[j][k] % 1) < 0.0001)
+                matrix[j][k] = (float)Math.Truncate(matrix[j][k]);
+            }
+          }
+        }
+      }
+      lead++;
+    }
+
+    // normalize floating point values
+    for (var i = 0; i < matrix.Length; i++) {
+      for (var j = 0; j < matrix[0].Length; j++) {
+        if (matrix[i][j] % 1 != 0) {
+          float mod = Math.Abs(matrix[i][j] % 1);
+          if (mod > 0.5) {
+            mod /= 2;
+          }
+          if (mod < 0.00001) {
+            matrix[i][j] = (float)Math.Truncate(matrix[i][j]);
+            continue;
+          }
+
+          for (var k = 0; k < matrix[0].Length; k++) {
+            matrix[i][k] /= mod;
+            if (matrix[i][k] % 1 > 0.999)
+              matrix[i][k] = (float)Math.Ceiling(matrix[i][k]);
+            else if (matrix[i][k] % 1 < -0.999)
+              matrix[i][k] = (float)Math.Floor(matrix[i][k]);
+            else if (matrix[i][k] % 1 < 0.00001)
+              matrix[i][k] = (float)Math.Floor(matrix[i][k]);
+            else if (matrix[i][k] % 1 > -0.00001)
+              matrix[i][k] = (float)Math.Ceiling(matrix[i][k]);
+          }
+        }
+      }
+    }
+    var newMatrix = new List<float[]>();
+    // remove all zero rows
+    for (var i = 0; i < matrix.Length; i++) {
+      var hasNumbers = false;
+      for (var j = 0; j < matrix[0].Length; j++) {
+        if (matrix[i][j] != 0) {
+          hasNumbers = true;
+        } else {
+          matrix[i][j] = 0;
+        }
+      }
+      if (hasNumbers) {
+        newMatrix.Add(matrix[i]);
+      }
+    }
+
+    newMatrix = Transpose(newMatrix);
+    // push free variable column to the right
+    for (var i = 0; i < newMatrix[0].Length; i++) {
+      var push = 0;
+      while (newMatrix[i + push][i] == 0) {
+        push++;
+      }
+      if (push > 0) {
+        (newMatrix[i + push], newMatrix[i]) = (newMatrix[i], newMatrix[i + push]);
+      }
+    }
+    newMatrix = Transpose(newMatrix);
+
+    return newMatrix.ToArray();
+  }
+
+  private static List<float[]> Transpose(List<float[]> arr)
+  {
+    var newArray = new List<float[]>();
+    foreach (var _ in arr[0]) {
+      newArray.Add(new float[arr.Count]);
+    }
+    // Console.WriteLine($"Created new Array");
+    for (var i = 0; i < arr.Count; i++) {
+      for (var j = 0; j < arr[0].Length; j++) {
+        newArray[j][i] = arr[i][j];
+      }
+    }
+    return newArray;
+  }
+
+  private static void OldVersion(float[][] matrix)
+  {
+    var h = 0;
+    var k = 0;
+    var m = matrix.Length;
+    var n = matrix[0].Length;
+
+    while (h < m && k < n) {
+      // Console.WriteLine($"\nMoving to row:{h} and col:{k}");
+      var i_max = h;
+      // Loop through rows from current row to the end looking for next pivot
+      for (var i = h; i < m; i++) {
+        // loop through rows to find the max value for the current column
+        i_max = Math.Abs(matrix[i][k]) > Math.Abs(matrix[i_max][k]) ? i : i_max;
+      }
+      // Console.WriteLine($"h(row):{currentRow}, k(col):{currentCol}, imax: {i_max}");
+      // if there is no max then move to the next column 
+      if (matrix[i_max][k] == 0) {
+        k++;
+      } else {
+        (matrix[h], matrix[i_max]) = (matrix[i_max], matrix[h]);
+
+        var fractional = false;
+        // for (var i = 0; i < m; i++) {
+        //   if (i == h)
+        //     continue;
+        //   if (matrix[i][k] % matrix[h][k] != 0) {
+        //     fractional = true;
+        //     break;
+        //   }
+        // }
+
+        for (var i = 0; i < m; i++) {
+          if (i == h)
+            continue;
+          var f = fractional ? matrix[i][k] : matrix[i][k] / matrix[h][k];
+          matrix[i][k] = 0;
+          for (var j = k + 1; j < n; j++) {
+            matrix[i][j] = matrix[i][j] - matrix[h][j] * f;
+          }
+        }
+        h++;
+        k++;
+      }
+    }
+    Helper.VarDump(matrix);
+
+  }
+
+
+  private static float[][] ToFloatArray(this int[][] intArray)
+  {
+    var array = new List<float[]>();
+    foreach (var intArr in intArray)
+      array.Add(intArr.ToFloatArray());
+
+    return array.ToArray();
+  }
+  private static float[] ToFloatArray(this int[] intArray)
+  {
+    var array = new float[intArray.Length];
+    foreach (var (i, val) in intArray.Index())
+      array[i] = val;
+    return array;
+  }
+  private static long PartTwo_Old(string data)
   {
     var schematics = ProcessData(data);
     long tally = 0;
@@ -62,7 +307,7 @@ internal static partial class Program
     for (var s = 0; s < schematics.Length; s++) {
       if (s < min || s > max || max == -1)
         continue;
-  
+
       Console.WriteLine($"\nMatrix index:{s}");
       int[][] buttons = schematics[s].buttons;
       int[] joltage = schematics[s].joltage;
@@ -102,13 +347,21 @@ internal static partial class Program
           // Console.WriteLine($"Swapping rows {currentRow} and {i_max}");
           // Swap currentRow with i_max row
           (matrix[currentRow], matrix[i_max]) = (matrix[i_max], matrix[currentRow]);
-          // Helper.VarDump(matrix[currentRow]);
-          // Helper.VarDump(matrix[i_max]);
-          // Helper.VarDump(matrix);
-          // set the denominator for the row calculations
+
+          // check the denominator for non-exact fraction
           var row_h = matrix[currentRow];
           var denom = row_h[currentCol];
           // Console.WriteLine($"Denom:{denom}");
+          var fractional = false;
+          for (var i = 0; i < rowCount; i++) {
+            if (i == currentRow || matrix[i][currentCol] == 0)
+              continue;
+            var nom = matrix[i][currentCol];
+            if (nom % denom != 0) {
+              Console.WriteLine($"Fraction: {nom} / {denom}");
+              fractional = true;
+            }
+          }
 
           // loop through the rows following currentRow (trying from 0)
           for (var i = 0; i < rowCount; i++) {
@@ -116,18 +369,20 @@ internal static partial class Program
               continue;
             var row_i = matrix[i];
             // Console.WriteLine($"Working on row(i):{i}, currentCol:{currentCol} nom:{row_i[currentCol]}");
-            var nom = row_i[currentCol];
+            var nom = fractional ? denom * row_i[currentCol] : row_i[currentCol];
             // Console.WriteLine($"Nom:{nom}");
+            // Console.WriteLine($"Set matrix[{i}][{currentCol}] from {matrix[i][currentCol]} to 0");
+            // set the i row value to zero
+            row_i[currentCol] = 0;
+
             // todo: check if this loses precision (i.e. not an exact integer division)
             // and divide by zero
             if (nom % denom != 0) {
               Console.WriteLine($"Fraction: {nom} / {denom}");
+
             }
             // set the multiplier 'f' to the i row values / the currentRow value (this can be set out side the loop)
             var f = nom / denom;
-            // Console.WriteLine($"Set matrix[{i}][{currentCol}] from {matrix[i][currentCol]} to 0");
-            // set the i row value to zero
-            row_i[currentCol] = 0;
             // loop through the remaining columns in the ro
             // // loop through the remaining columns in the row
             for (var j = currentCol + 1; j < colCount; j++) {
