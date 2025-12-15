@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using AocHelper;
+﻿using AocHelper;
 using Microsoft.Z3;
 
 namespace Day10;
@@ -57,10 +56,16 @@ internal static partial class Program
     var schematics = ProcessData(data);
     long tally = 0;
 
+    var min = 0;
+    var max = 2;
+
     for (var s = 0; s < schematics.Length; s++) {
+      if (s < min || s > max || max == -1)
+        continue;
+  
+      Console.WriteLine($"\nMatrix index:{s}");
       int[][] buttons = schematics[s].buttons;
       int[] joltage = schematics[s].joltage;
-
       int buttonCount = buttons.Length;
       int joltageCount = joltage.Length;
 
@@ -74,49 +79,72 @@ internal static partial class Program
 
       Helper.VarDump(matrix);
 
-      var h = 0;
-      var k = 0;
-      var m = matrix.Length;
-      var n = matrix[0].Length;
+      var currentRow = 0;
+      var currentCol = 0;
+      var rowCount = matrix.Length;
+      var colCount = matrix[0].Length;
 
-      while (h < m && k < n) {
-        var i_max = 0;
-        // Helper.VarDump(matrix);
-        for (var row = h; row < m; row++) {
-          i_max = Math.Abs(matrix[row][k]) > Math.Abs(matrix[i_max][k]) ? row : i_max;
+      while (currentRow < rowCount && currentCol < colCount) {
+        Console.WriteLine($"\nMoving to row:{currentRow} and col:{currentCol}");
+        var i_max = currentRow;
+        // Loop through rows from current row to the end looking for next pivot
+        for (var row = currentRow; row < rowCount; row++) {
+          // loop through rows to find the max value for the current column
+          i_max = Math.Abs(matrix[row][currentCol]) > Math.Abs(matrix[i_max][currentCol]) ? row : i_max;
         }
-        Console.WriteLine($"h(row):{h}, k(col):{k}, imax: {i_max}");
-        if (i_max == 0) {
-          Console.WriteLine($"Imax zero so skipping to next column");
-          k++;
+        // Console.WriteLine($"h(row):{currentRow}, k(col):{currentCol}, imax: {i_max}");
+        // if there is no max then move to the next column 
+        if (matrix[i_max][currentCol] == 0) {
+          // Console.WriteLine($"i_max zero for row:{currentRow}, col:{currentCol} so skipping to next column:{currentCol + 1}");
+          currentCol++;
         } else {
-          // Console.WriteLine($"Swapping rows {h} and {i_max}");
-          (matrix[h], matrix[i_max]) = (matrix[i_max], matrix[h]);
           // Helper.VarDump(matrix);
-          for (var i = 0; i < m; i++) {
-            if (i == h)
+          // Console.WriteLine($"Swapping rows {currentRow} and {i_max}");
+          // Swap currentRow with i_max row
+          (matrix[currentRow], matrix[i_max]) = (matrix[i_max], matrix[currentRow]);
+          // Helper.VarDump(matrix[currentRow]);
+          // Helper.VarDump(matrix[i_max]);
+          // Helper.VarDump(matrix);
+          // set the denominator for the row calculations
+          var row_h = matrix[currentRow];
+          var denom = row_h[currentCol];
+          // Console.WriteLine($"Denom:{denom}");
+
+          // loop through the rows following currentRow (trying from 0)
+          for (var i = 0; i < rowCount; i++) {
+            if (i == currentRow || matrix[i][currentCol] == 0)
               continue;
-            Console.WriteLine($"Working on row(i):{i}");
+            var row_i = matrix[i];
+            // Console.WriteLine($"Working on row(i):{i}, currentCol:{currentCol} nom:{row_i[currentCol]}");
+            var nom = row_i[currentCol];
+            // Console.WriteLine($"Nom:{nom}");
             // todo: check if this loses precision (i.e. not an exact integer division)
             // and divide by zero
-            var nom = matrix[i][k];
-            var denom = matrix[h][k];
-            Console.WriteLine($"Calc nom/denom, matrix[i][k]:{nom} / matrix[h][k]:{denom}");
-            if (nom % denom != 0){
-              Console.WriteLine($"Fraction");
+            if (nom % denom != 0) {
+              Console.WriteLine($"Fraction: {nom} / {denom}");
             }
+            // set the multiplier 'f' to the i row values / the currentRow value (this can be set out side the loop)
             var f = nom / denom;
-            // Console.WriteLine($"Setting matrix[i][k]:{matrix[i][k]} to 0, i:{i}, k:{k}");
-            matrix[i][k] = 0;
-            for (var j = k + 1; j < n; j++) {
+            // Console.WriteLine($"Set matrix[{i}][{currentCol}] from {matrix[i][currentCol]} to 0");
+            // set the i row value to zero
+            row_i[currentCol] = 0;
+            // loop through the remaining columns in the ro
+            // // loop through the remaining columns in the row
+            for (var j = currentCol + 1; j < colCount; j++) {
               // Console.WriteLine($"For remaining columns matrix[i][j]:{matrix[i][j]} - matrix[h][j]:{matrix[h][j]} * f:{f}");
-              matrix[i][j] = matrix[i][j] - matrix[h][j] * f;
+              // subtract the currentRow value * (i row value / currentRow value).
+              // (So if the currentRow val is 2 and the iRow value is 4)
+              // then the iRow value = 4 - (4 / 2) = 2
+              Console.WriteLine($"Set row_i[{j}] = row_i[{j}]:{row_i[j]} - row_h[{j}]:{row_h[j]} * f:{f}");
+              row_i[j] = row_i[j] - row_h[j] * f;
             }
             // Console.WriteLine($"h:{h}");
             // Helper.VarDump(matrix);
           }
-          h++;
-          k++;
+          // increment diagonal (i.e. row and column at the same time, 0,0, 1,1, 2,2 ... etc.)
+          currentRow++;
+          currentCol++;
+          // Helper.VarDump(matrix);
         }
       }
 
