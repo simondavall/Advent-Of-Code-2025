@@ -1,4 +1,5 @@
 using System.Text;
+using System.Numerics;
 
 namespace AocHelper;
 
@@ -219,14 +220,17 @@ public static class Helper
     Console.WriteLine();
   }
 
-  public static void VarDump<T>(T[][] arr)
+  public static void VarDump<T>(T[][] arr) where T : INumber<T>
   {
     var len = arr.Length;
     int idxLen = len.ToString().Length;
     for (var i = 0; i < len; i++) {
       PaddedString("[", i.ToString(), '0', idxLen, "] = [");
       for (var j = 0; j < arr[i].Length; j++) {
-        Console.Write($"{arr[i][j]}, ");
+        if (arr[i][j] < T.Zero)
+          Console.Write($"\u001b[31m{T.Abs(arr[i][j])}\u001b[0m, ");
+        else
+          Console.Write($"\u001b[32m{arr[i][j]}\u001b[0m, ");
       }
       Console.Write("\b\b]\n");
     }
