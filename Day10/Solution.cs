@@ -1,4 +1,5 @@
-﻿using AocHelper;
+﻿using System.Runtime.InteropServices;
+using AocHelper;
 using Microsoft.Z3;
 
 namespace Day10;
@@ -55,50 +56,102 @@ internal static partial class Program
     var schematics = ProcessData(data);
     long tally = 0;
 
-    var min = 0;
-    var max = -1;
+    var lower = 0;
+    var upper = -1;
 
     var solved = 0;
     var matrices = schematics.Length;
 
     for (var s = 0; s < matrices; s++) {
-      if (s < min || (s > max && max != -1))
+      if (s < lower || (s > upper && upper != -1))
         continue;
 
-      // if (!new float[]{5, 80}.Contains(s)){
-      //   continue;
-      // }
+      if (!new float[]{18,31, 80,109,163}.Contains(s)){
+        continue;
+      }
 
-      // Console.WriteLine($"\nMatrix index:{s}");
+      Console.WriteLine($"\nMatrix index:{s}");
       float[][] buttons = schematics[s].buttons.ToFloatArray();
       float[] joltage = schematics[s].joltage.ToFloatArray();
       int buttonCount = buttons.Length;
       int joltageCount = joltage.Length;
 
-      float[][] matrix = new float[joltageCount][];
-      for (int l = 0; l < joltageCount; l++) {
-        matrix[l] = new float[buttonCount + 1];
-        matrix[l][^1] = joltage[l];
+      float[][] orig_matrix = new float[joltageCount][];
+      for (int i = 0; i < joltageCount; i++) {
+        orig_matrix[i] = new float[buttonCount + 1];
+        orig_matrix[i][^1] = joltage[i];
         for (int j = 0; j < buttons.Length; j++)
-          matrix[l][j] = buttons[j].Contains(l) ? 1 : 0;
+          orig_matrix[i][j] = buttons[j].Contains(i) ? 1 : 0;
       }
-      Console.WriteLine($"Original matrix");
-      Helper.VarDump(matrix);
+      // Console.WriteLine($"Original matrix");
+      // Helper.VarDump(matrix);
 
-      matrix = ReducedRowEchelonForm(matrix);
+      var matrix = ReducedRowEchelonForm(orig_matrix, s);
       // Helper.VarDump(matrix1);
 
       var m = matrix.Length;
       var n = matrix[0].Length - 1;
 
-      float tallyForMatrix = 0;
+      int tallyForMatrix = 0;
       if (n > m) {
         Console.WriteLine($"\nMatrix index:{s}");
         Helper.VarDump(joltage);
-        Console.WriteLine($"Need resolving");
+        // we need to deal with free variables
+        var max = 0;
+        Array.ForEach(joltage, x => max = (int)Math.Max(max, x));
+        Console.WriteLine($"Max joltage value: {max}");
         Console.WriteLine($"Free = {n - m}");
         Helper.VarDump(matrix);
-        // we need to deal with free variables
+        var freevariables = n - m;
+        if (freevariables > 3)
+          throw new ApplicationException($"Expected max free variables to be 3. Found:{freevariables}, Matrix Id:{s}");
+        var max_b = freevariables > 1 ? max : 0;
+        var max_c = freevariables > 2 ? max : 0;
+
+        var possibles = new int[freevariables];
+        var minSolution = int.MaxValue;
+        for (var a = 0; a <= max; a++) {
+          possibles[0] = a;
+          for (var b = 0; b <= max_b; b++) {
+            if (freevariables > 1)
+              possibles[1] = b;
+            for (var c = 0; c <= max_c; c++) {
+              if (freevariables > 2)
+                possibles[2] = c;
+              var solution = 0;
+              var solutionFound = true;
+              var presses = a + b + c;
+              //Helper.VarDump(possibles);
+              for (var i = 0; i < m; i++) {
+                var fv_sum = 0;
+                for(var j = 0; j < freevariables; j++){
+                  fv_sum += matrix[i][^(j+2)] * possibles[j];
+                }
+
+                //Console.WriteLine($"fv_sum:{fv_sum}, num:{matrix[i][^1] - fv_sum}, matrix[i][i]:{matrix[i][i]}");
+                var num = matrix[i][^1] - fv_sum;
+                if (num < 0 || num % matrix[i][i] != 0) {
+
+                  // failed, move to next attempt.
+                  solutionFound = false;
+                  break;
+                }
+
+                solution += num / matrix[i][i];
+                //Console.WriteLine($"num:{num}, presses:{presses}, solution so far:{solution}");
+              }
+              if (solutionFound){
+                //Console.WriteLine($"Found a solution: {solution} with possibles:");
+                //Helper.VarDump(possibles);
+
+                minSolution = Math.Min(minSolution, solution + presses);           
+              }
+            }
+          }
+        }
+        solved++;
+        tallyForMatrix = minSolution;
+
       } else {
         // Console.WriteLine($"\nMatrix index:{s}");
         // Helper.VarDump(matrix);
@@ -107,7 +160,8 @@ internal static partial class Program
         }
         solved++;
       }
-      tally += (long)tallyForMatrix;
+      Console.WriteLine($"Changed matrices:{changed.ToArray().Print()}");
+      tally += tallyForMatrix;
       Console.WriteLine($"Total for matrix:{tallyForMatrix}");
     }
 
@@ -115,7 +169,8 @@ internal static partial class Program
     return tally;
   }
 
-  private static float[][] ReducedRowEchelonForm(float[][] orig_matrix)
+  private static HashSet<int> changed = new HashSet<int>();
+  private static int[][] ReducedRowEchelonForm(float[][] orig_matrix, int idx)
   {
     var matrix = new float[orig_matrix.Length][];
     foreach (var (i, row) in orig_matrix.Index())
@@ -157,6 +212,8 @@ internal static partial class Program
       lead++;
     }
 
+    //Helper.VarDump(matrix);
+
     // normalize floating point values
     for (var i = 0; i < matrix.Length; i++) {
       for (var j = 0; j < matrix[0].Length; j++) {
@@ -166,64 +223,88 @@ internal static partial class Program
             mod /= 2;
           }
           if (mod < 0.00001) {
+              Console.WriteLine($"Before change 1: {matrix[i][j]}");
             matrix[i][j] = (float)Math.Truncate(matrix[i][j]);
+            changed.Add(idx);
+              Console.WriteLine($"After change: {matrix[i][j]}");
             continue;
           }
 
           for (var k = 0; k < matrix[0].Length; k++) {
             matrix[i][k] /= mod;
-            if (matrix[i][k] % 1 > 0.999)
+            var rem = matrix[i][k] % 1;
+            Console.WriteLine($"Rem:{rem}");
+            if (rem > 0.999){
+              Console.WriteLine($"Before change 2: {matrix[i][k]}");
+              changed.Add(idx);
               matrix[i][k] = (float)Math.Ceiling(matrix[i][k]);
-            else if (matrix[i][k] % 1 < -0.999)
+              Console.WriteLine($"After change: {matrix[i][k]}");
+            }
+            else if (rem < -0.999){
+              Console.WriteLine($"Before change 3: {matrix[i][k]}");
+              changed.Add(idx);
               matrix[i][k] = (float)Math.Floor(matrix[i][k]);
-            else if (matrix[i][k] % 1 < 0.00001)
+              Console.WriteLine($"After change: {matrix[i][k]}");
+            }
+            else if (rem > 0 && rem < 0.00001){
+              Console.WriteLine($"Before change 4: {matrix[i][k]}");
+              changed.Add(idx);
               matrix[i][k] = (float)Math.Floor(matrix[i][k]);
-            else if (matrix[i][k] % 1 > -0.00001)
+              Console.WriteLine($"After change: {matrix[i][k]}");
+            }
+            else if (rem < 0 && rem > -0.00001){
+              Console.WriteLine($"Before change 5: {matrix[i][k]}");
+              changed.Add(idx);
               matrix[i][k] = (float)Math.Ceiling(matrix[i][k]);
+              Console.WriteLine($"After change: {matrix[i][k]}");
+            }
           }
         }
       }
     }
-    var newMatrix = new List<float[]>();
+
+    
+    var newMatrix = new List<int[]>();
     // remove all zero rows
     for (var i = 0; i < matrix.Length; i++) {
       var hasNumbers = false;
+      var newRow = new int[matrix[0].Length];
       for (var j = 0; j < matrix[0].Length; j++) {
         if (matrix[i][j] != 0) {
+          newRow[j] = (int)matrix[i][j];
           hasNumbers = true;
         } else {
-          matrix[i][j] = 0;
+          newRow[j] = 0;
         }
       }
       if (hasNumbers) {
-        newMatrix.Add(matrix[i]);
+        newMatrix.Add(newRow);
       }
     }
 
-    newMatrix = Transpose(newMatrix);
+    var txMatrix = Transpose(newMatrix.ToArray());
     // push free variable column to the right
-    for (var i = 0; i < newMatrix[0].Length; i++) {
+    for (var i = 0; i < txMatrix[0].Length; i++) {
       var push = 0;
-      while (newMatrix[i + push][i] == 0) {
+      while (txMatrix[i + push][i] == 0) {
         push++;
       }
       if (push > 0) {
-        (newMatrix[i + push], newMatrix[i]) = (newMatrix[i], newMatrix[i + push]);
+        (txMatrix[i + push], txMatrix[i]) = (txMatrix[i], txMatrix[i + push]);
       }
     }
-    newMatrix = Transpose(newMatrix);
+    txMatrix = Transpose(txMatrix);
 
-    return newMatrix.ToArray();
+    return txMatrix.ToArray();
   }
 
-  private static List<float[]> Transpose(List<float[]> arr)
+  private static int[][] Transpose(int[][] arr)
   {
-    var newArray = new List<float[]>();
-    foreach (var _ in arr[0]) {
-      newArray.Add(new float[arr.Count]);
+    var newArray = new int[arr[0].Length][];
+    for (var i = 0; i < arr[0].Length; i++) {
+      newArray[i] = new int[arr.Length];
     }
-    // Console.WriteLine($"Created new Array");
-    for (var i = 0; i < arr.Count; i++) {
+    for (var i = 0; i < arr.Length; i++) {
       for (var j = 0; j < arr[0].Length; j++) {
         newArray[j][i] = arr[i][j];
       }
