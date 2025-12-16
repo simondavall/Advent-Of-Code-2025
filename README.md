@@ -1,5 +1,7 @@
 # Advent-Of-Code-2025
-Solutions for Advent Of Code 2025 written using C#
+Complete solutions for Advent Of Code 2025 written using C#
+
+<img src="./Assets/Aoc2025.png" alt="The machines buttons!!" width="600" />
 
 ### To run all 12 days: ###
 1. Install .Net 10.0 sdk/runtime.
