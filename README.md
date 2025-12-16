@@ -27,7 +27,7 @@ https://adventofcode.com/2025/day/1
 File: ../Day01/input.txt
 
 Part 1 Result: 997 in 3.7683ms\
-Part 2 Result: 5978 in 1.0229ms
+Part 2 Result: 5978 in 1.0229ms\
 Great Success!!!
 
 
@@ -37,7 +37,7 @@ https://adventofcode.com/2025/day/2
 File: ../Day02/input.txt
 
 Part 1 Result: 12850231731 in 38.8803ms\
-Part 2 Result: 24774350322 in 565.2938ms
+Part 2 Result: 24774350322 in 565.2938ms\
 Great Success!!!
 
 
@@ -47,7 +47,7 @@ https://adventofcode.com/2025/day/3
 File: ../Day03/input.txt
 
 Part 1 Result: 17092 in 1.6676ms\
-Part 2 Result: 170147128753455 in 1.4215ms
+Part 2 Result: 170147128753455 in 1.4215ms\
 Great Success!!!
 
 
@@ -57,7 +57,7 @@ https://adventofcode.com/2025/day/4
 File: ../Day04/input.txt
 
 Part 1 Result: 1604 in 4.7346ms\
-Part 2 Result: 9397 in 17.808ms
+Part 2 Result: 9397 in 17.808ms\
 Great Success!!!
 
 
@@ -67,7 +67,7 @@ https://adventofcode.com/2025/day/5
 File: ../Day05/input.txt
 
 Part 1 Result: 623 in 8.9325ms\
-Part 2 Result: 353507173555373 in 0.8615ms
+Part 2 Result: 353507173555373 in 0.8615ms\
 Great Success!!!
 
 
@@ -77,7 +77,7 @@ https://adventofcode.com/2025/day/6
 File: ../Day06/input.txt
 
 Part 1 Result: 4719804927602 in 7.794ms\
-Part 2 Result: 9608327000261 in 6.0906ms
+Part 2 Result: 9608327000261 in 6.0906ms\
 Great Success!!!
 
 
@@ -87,7 +87,7 @@ https://adventofcode.com/2025/day/7
 File: ../Day07/input.txt
 
 Part 1 Result: 1490 in 5.0962ms\
-Part 2 Result: 3806264447357 in 5.7984ms
+Part 2 Result: 3806264447357 in 5.7984ms\
 Great Success!!!
 
 
@@ -97,7 +97,7 @@ https://adventofcode.com/2025/day/8
 File: ../Day08/input.txt, Count:1000
 
 Part 1 Result: 66640 in 339.7145ms\
-Part 2 Result: 78894156 in 666.0137ms
+Part 2 Result: 78894156 in 666.0137ms\
 Great Success!!!
 
 
@@ -107,7 +107,7 @@ https://adventofcode.com/2025/day/9
 File: ../Day09/input.txt
 
 Part 1 Result: 4760959496 in 22.2462ms\
-Part 2 Result: 1343576598 in 285.9555ms
+Part 2 Result: 1343576598 in 285.9555ms\
 Great Success!!!
 
 
@@ -117,7 +117,7 @@ https://adventofcode.com/2025/day/10
 File: ../Day10/input.txt
 
 Part 1 Result: 457 in 83.9ms\
-Part 2 Result: 17576 in 142.2192ms
+Part 2 Result: 17576 in 142.2192ms\
 Great Success!!!
 
 
@@ -127,7 +127,7 @@ https://adventofcode.com/2025/day/11
 File: ../Day11/input.txt
 
 Part 1 Result: 448 in 22.4525ms\
-Part 2 Result: 553204221431080 in 57.4969ms
+Part 2 Result: 553204221431080 in 57.4969ms\
 Great Success!!!
 
 
@@ -137,7 +137,7 @@ https://adventofcode.com/2025/day/12
 File: ../Day12/input.txt
 
 Part 1 Result: 521 in 6.3756ms\
-Part 2 Result: 0 in 0.0584ms
+Part 2 Result: 0 in 0.0584ms\
 Great Success!!!
 
 
