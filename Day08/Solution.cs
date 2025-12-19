@@ -18,6 +18,7 @@ internal static partial class Program
         boxProximities.Enqueue((boxes[i], boxes[j]), boxes[i].SquaredDistanceTo(boxes[j]));
       }
     }
+
     var circuits = new List<HashSet<JunctionBox>>();
     var counter = 0;
     while (counter < pairsCount) {
@@ -28,6 +29,7 @@ internal static partial class Program
           existingCircuit.Add(circuit);
         }
       }
+
       switch (existingCircuit.Count) {
         case 2:
           foreach (var box in existingCircuit[1])
@@ -74,6 +76,7 @@ internal static partial class Program
         boxProximities.Enqueue((boxes[i], boxes[j]), boxes[i].SquaredDistanceTo(boxes[j]));
       }
     }
+
     circuits.Add(new HashSet<JunctionBox>([boxes[^1]]));
 
     long tally;
@@ -114,20 +117,16 @@ internal static partial class Program
 
   private readonly struct JunctionBox(long x, long y, long z)
   {
-    private readonly string strPoint = $"{x}-{y}-{z}";
     public long X { get; } = x;
     public long Y { get; } = y;
     public long Z { get; } = z;
 
     public long SquaredDistanceTo(JunctionBox other)
     {
-      return (other.X - X) * (other.X - X)
-        + (other.Y - Y) * (other.Y - Y)
-         + (other.Z - Z) * (other.Z - Z);
-    }
-    public override string ToString()
-    {
-      return strPoint;
+      var dx = other.X - X;
+      var dy = other.Y - Y;
+      var dz = other.Z - Z;
+      return dx * dx + dy * dy + dz * dz;
     }
   }
 }
